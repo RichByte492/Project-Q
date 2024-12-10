@@ -82,6 +82,33 @@
             0% { transform: translateY(0); }
             100% { transform: translateY(100vh); }
         }
+        .progress-bar {
+            width: 80%;
+            height: 20px;
+            background-color: #333;
+            margin: 20px auto;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #0af;
+            transition: width 0.3s ease;
+        }
+        .settings {
+            margin-top: 20px;
+        }
+        .settings input, .settings select {
+            background-color: #333;
+            color: #0af;
+            border: 2px solid #0af;
+            padding: 5px;
+            margin: 5px;
+        }
+        .laps {
+            margin-top: 20px;
+            color: #0af;
+        }
     </style>
 </head>
 <body>
@@ -89,22 +116,47 @@
     <div class="scanline"></div>
     <div class="container">
         <div id="timer">00:00:00</div>
+        <div class="progress-bar">
+            <div class="progress-bar-fill" id="progressBarFill"></div>
+        </div>
         <div class="buttons">
             <button id="startBtn">Start</button>
             <button id="pauseBtn">Pause</button>
             <button id="resetBtn">Reset</button>
+            <button id="lapBtn">Lap</button>
         </div>
+        <div class="settings">
+            <label for="countdownInput">Countdown (seconds): </label>
+            <input type="number" id="countdownInput" placeholder="Enter seconds">
+            <button id="setCountdownBtn">Set Countdown</button>
+            <label for="themeSelect">Theme: </label>
+            <select id="themeSelect">
+                <option value="cyberpunk">Cyberpunk</option>
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+            </select>
+        </div>
+        <div class="laps" id="laps"></div>
     </div>
 
     <script>
         let timer;
         let isRunning = false;
         let seconds = 0;
+        const totalSeconds = 30 * 60 * 60; // 30 hours in seconds
+        let countdownSeconds = totalSeconds;
+        let laps = [];
 
         const timerDisplay = document.getElementById('timer');
         const startBtn = document.getElementById('startBtn');
         const pauseBtn = document.getElementById('pauseBtn');
         const resetBtn = document.getElementById('resetBtn');
+        const lapBtn = document.getElementById('lapBtn');
+        const progressBarFill = document.getElementById('progressBarFill');
+        const countdownInput = document.getElementById('countdownInput');
+        const setCountdownBtn = document.getElementById('setCountdownBtn');
+        const themeSelect = document.getElementById('themeSelect');
+        const lapsContainer = document.getElementById('laps');
 
         function updateTimer() {
             const hours = Math.floor(seconds / 3600);
@@ -116,14 +168,23 @@
                 .join(":");
 
             timerDisplay.textContent = timeString;
+
+            // Update progress bar
+            const progress = (seconds / countdownSeconds) * 100;
+            progressBarFill.style.width = `${progress}%`;
         }
 
         function startTimer() {
             if (isRunning) return;
             isRunning = true;
             timer = setInterval(() => {
-                seconds++;
-                updateTimer();
+                if (seconds < countdownSeconds) {
+                    seconds++;
+                    updateTimer();
+                } else {
+                    clearInterval(timer);
+                    alert("Time's up!");
+                }
             }, 1000);
         }
 
@@ -138,11 +199,46 @@
             clearInterval(timer);
             seconds = 0;
             updateTimer();
+            laps = [];
+            lapsContainer.innerHTML = '';
+        }
+
+        function lapTimer() {
+            if (!isRunning) return;
+            laps.push(seconds);
+            const lapElement = document.createElement('div');
+            lapElement.textContent = `Lap ${laps.length}: ${formatTime(seconds)}`;
+            lapsContainer.appendChild(lapElement);
+        }
+
+        function setCountdown() {
+            const inputSeconds = parseInt(countdownInput.value, 10);
+            if (!isNaN(inputSeconds) && inputSeconds > 0) {
+                countdownSeconds = inputSeconds;
+                resetTimer();
+            } else {
+                alert("Please enter a valid number of seconds.");
+            }
+        }
+
+        function changeTheme() {
+            const theme = themeSelect.value;
+            document.body.className = theme;
+        }
+
+        function formatTime(time) {
+            const hours = Math.floor(time / 3600);
+            const minutes = Math.floor((time % 3600) / 60);
+            const secs = time % 60;
+            return [hours, minutes, secs].map(v => v < 10 ? "0" + v : v).join(":");
         }
 
         startBtn.addEventListener('click', startTimer);
         pauseBtn.addEventListener('click', pauseTimer);
         resetBtn.addEventListener('click', resetTimer);
+        lapBtn.addEventListener('click', lapTimer);
+        setCountdownBtn.addEventListener('click', setCountdown);
+        themeSelect.addEventListener('change', changeTheme);
     </script>
 </body>
 </html>
